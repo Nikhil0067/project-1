@@ -2,87 +2,87 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 
-# Step 1: Create a connection to your MySQL database
+# Step 1: Create MySQL database connection
 def create_database_connection():
     engine = create_engine('mysql+pymysql://ipl_user:ipl_pass123@localhost:3306/ipl_players_db')
     return engine
 
-# Step 2: Load data from MySQL database into DataFrame
+# Step 2: Load CSV into MySQL
+def load_csv_to_mysql(engine, csv_path):
+    df = pd.read_csv(csv_path)
+    df.to_sql("players", con=engine, if_exists='replace', index=False)
+    print("✅ CSV data loaded into MySQL 'players' table.")
+
+# Step 3: Load data from MySQL into DataFrame
 def load_data_from_db(engine):
     query = "SELECT Player_Name, Team, Age, Matches_Played, Runs, Wickets, Role FROM players"
     df = pd.read_sql(query, engine)
-    
-    # Remove duplicates based on Player_Name
     df = df.drop_duplicates(subset=['Player_Name'])
-    
-    print(f"Data loaded: {df.shape[0]} rows, {df.shape[1]} columns.")
+    print(f"✅ Data loaded: {df.shape[0]} rows, {df.shape[1]} columns.")
     return df
 
-# Step 3: Check and print the columns of the DataFrame
+# Step 4: Display column names
 def check_columns(df):
-    print("DataFrame Columns:", df.columns)
+    print("📋 DataFrame Columns:", df.columns.tolist())
 
-# Step 4: Compare two players based on selected stats (Runs or Wickets)
+# Step 5: Compare two players and plot results
 def compare_players(df, player1, player2, stat):
-    stat = stat.capitalize()  # Make sure 'runs' -> 'Runs' and 'wickets' -> 'Wickets'
-    
+    stat = stat.capitalize()
     player1_data = df[df['Player_Name'].str.lower() == player1.lower()][['Player_Name', stat]]
     player2_data = df[df['Player_Name'].str.lower() == player2.lower()][['Player_Name', stat]]
-
-    # Merge the two dataframes to have the comparison in one table
     comparison = pd.concat([player1_data, player2_data])
 
-    print(f"\n--- {stat.capitalize()} Comparison ---")
+    print(f"\n📊 --- {stat} Comparison ---")
     print(comparison)
 
-    # Plotting the bar graph for comparison
     plt.figure(figsize=(8, 5))
     plt.bar(comparison['Player_Name'], comparison[stat], color=['blue', 'orange'])
     plt.xlabel('Player Name')
-    plt.ylabel(stat.capitalize())
-    plt.title(f'{stat.capitalize()} Comparison: {player1} vs {player2}')
+    plt.ylabel(stat)
+    plt.title(f'{stat} Comparison: {player1} vs {player2}')
+    plt.tight_layout()
     plt.show()
 
-# Step 5: Main function to run the entire process
+# Step 6: Main execution
 def main():
-    print("Starting the process...")
-    
-    # Create database connection
+    print("🚀 Starting IPL Player Comparator...")
+
     engine = create_database_connection()
-    
-    # Load data from the MySQL database
+
+    # Load data from CSV to MySQL
+    csv_path = csv_path = "C:/Users/91812/OneDrive/Desktop/IPL_player analysis/ipl_players.csv"  # Use uploaded file path
+    load_csv_to_mysql(engine, csv_path)
+
+    # Load data from MySQL
     df = load_data_from_db(engine)
-    
-    # Check the columns of the DataFrame
     check_columns(df)
-    
-    # Display all players from the database (Batsman, Bowler, and All-rounder)
-    print("\nAll Available Players:")
+
+    # Show all available players
+    print("\n📋 All Available Players:")
     print(df[['Player_Name', 'Team', 'Role']])
 
-    # Step 6: Ask for player category (Batsman, Bowler, All-rounder)
-    role = input("Select player category (Batsman / Bowler / All-rounder): ").strip()
+    # Choose role
+    role = input("\n🔎 Select player category (Batsman / Bowler / All-rounder): ").strip()
     available_players = df[df['Role'].str.lower() == role.lower()]
 
-    # Display available players based on selected role
     if not available_players.empty:
-        print(f"\nAvailable {role}s:")
+        print(f"\n👥 Available {role}s:")
         print(available_players[['Player_Name', 'Team']])
     else:
-        print(f"\nNo {role}s found in the database.")
-    
-    # Step 7: Get player names and comparison criteria from the user
-    player1 = input("\nEnter first player name to compare: ")
-    player2 = input("Enter second player name to compare: ")
-    stat = input("Compare based on (Runs / Wickets): ").lower()
-
-    # Validate user input for valid stats
-    if stat not in ['runs', 'wickets']:
-        print("Invalid stat. Please choose either 'runs' or 'wickets'.")
+        print(f"❌ No {role}s found.")
         return
 
-    # Perform the comparison
+    # Input player names and stat
+    player1 = input("\n👤 Enter first player name to compare: ")
+    player2 = input("👤 Enter second player name to compare: ")
+    stat = input("📈 Compare based on (Runs / Wickets): ").lower()
+
+    if stat not in ['runs', 'wickets']:
+        print("❌ Invalid stat. Choose 'runs' or 'wickets'.")
+        return
+
     compare_players(df, player1, player2, stat)
 
 if __name__ == "__main__":
     main()
+
